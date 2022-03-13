@@ -1,0 +1,7 @@
+zig-cache/
+zig-out/
+/dep
+/install
+/shell.nix
+/instructions.md
+/env

@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+for f in $(find dep/* -name autogen-done); do
+    echo removing $f
+    rm $f
+done
+echo Success
