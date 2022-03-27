@@ -13,6 +13,16 @@ const GitRepoStep = @import("GitRepoStep.zig");
 pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
     //const mode = b.standardReleaseOptions();
+
+    // todo: use this to detect whether we can execute binaries for the given target
+    //const native_target_info = b.host.getExternalExecutor(
+    // THIS IS GONE: const can_execute = builtin.target.canExecBinariesOf(target.getTarget());
+    // until we implement this, this will just be a manual build option
+    const can_execute = if (b.option(bool, "noexecute", "manually tell automake we can't execute binaries")) |n| !n else true;
+    const automake_host: ?[]const u8 = if (can_execute) null else
+        // TODO: is it ok to pass the zig triple as the --host to automake?
+        (target.zigTriple(b.allocator) catch unreachable);
+
     var cc_bins = std.ArrayList([]const u8).init(b.allocator);
 
     var tools = findTools(b, target);
@@ -71,6 +81,7 @@ pub fn build(b: *Builder) void {
         const make = AutomakeStep.create(b, .{
             .name = "xcbproto",
             .path = repo.path,
+            .host = automake_host,
         });
         make.step.dependOn(&repo.step);
 
@@ -111,6 +122,7 @@ pub fn build(b: *Builder) void {
         const make = AutomakeStep.create(b, .{
             .name = "xorg-macros",
             .path = repo.path,
+            .host = automake_host,
         });
         make.step.dependOn(&repo.step);
 
@@ -151,6 +163,7 @@ pub fn build(b: *Builder) void {
         const make = AutomakeStep.create(b, .{
             .name = "xorgproto",
             .path = repo.path,
+            .host = automake_host,
         });
         applyCCToAutomake(tools, make);
         make.step.dependOn(&repo.step);
@@ -208,6 +221,7 @@ pub fn build(b: *Builder) void {
         const make = AutomakeStep.create(b, .{
             .name = "libxau",
             .path = repo.path,
+            .host = automake_host,
         });
         applyCCToAutomake(tools, make);
         make.step.dependOn(&repo.step);
@@ -273,6 +287,7 @@ pub fn build(b: *Builder) void {
         const make = AutomakeStep.create(b, .{
             .name = "libxcb",
             .path = repo.path,
+            .host = automake_host,
         });
         applyCCToAutomake(tools, make);
         make.step.dependOn(&repo.step);
@@ -346,6 +361,7 @@ pub fn build(b: *Builder) void {
         const make = AutomakeStep.create(b, .{
             .name = "libxtrans",
             .path = repo.path,
+            .host = automake_host,
         });
         applyCCToAutomake(tools, make);
         make.step.dependOn(&repo.step);
@@ -399,6 +415,7 @@ pub fn build(b: *Builder) void {
         const make = AutomakeStep.create(b, .{
             .name = "libx11",
             .path = repo.path,
+            .host = automake_host,
         });
         applyCCToAutomake(tools, make);
         make.step.dependOn(&repo.step);
@@ -486,6 +503,7 @@ pub fn build(b: *Builder) void {
         const make = AutomakeStep.create(b, .{
             .name = "libxext",
             .path = repo.path,
+            .host = automake_host,
         });
         applyCCToAutomake(tools, make);
         make.step.dependOn(&repo.step);
@@ -564,6 +582,7 @@ const AutomakeStep = struct {
     pub fn create(b: *Builder, opt: struct {
         name: []const u8,
         path: []const u8,
+        host: ?[]const u8,
     }) *AutomakeStep {
         const step = b.allocator.create(AutomakeStep) catch unreachable;
 
@@ -589,6 +608,10 @@ const AutomakeStep = struct {
         autogen_step.addArg("--prefix");
         const install_dir = b.pathJoin(&.{b.install_prefix, opt.name});
         autogen_step.addArg(install_dir);
+        if (opt.host) |h| {
+            autogen_step.addArg("--host");
+            autogen_step.addArg(h);
+        }
 
         const make_step = RunStep.create(b, b.fmt("make install {s}", .{opt.name}));
         make_step.cwd = opt.path;
