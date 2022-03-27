@@ -31,7 +31,7 @@ pub fn build(b: *Builder) void {
     //tools.cc.args = b.fmt("{s} <PUT_ARGS_HERE>", .{tools.cc.args});
     std.log.info("CC=\"{s}\"", .{tools.cc.args});
     cc_bins.append(tools.cc.file) catch unreachable;
-    var pkg_config_env_for_xcb: []const u8 = "PKG_CONFIG_PATH_FOR_TARGET";
+    var pkg_config_path_env: []const u8 = "PKG_CONFIG_PATH";
 
     const ld_bin: []const u8 = "ld";
 
@@ -39,8 +39,11 @@ pub fn build(b: *Builder) void {
     // TODO: I could create a test like autoconf does to see if gcc needs this?
     const on_ubuntu = if (b.option(bool, "ubuntu", "configure build for ubuntu")) |u| u else false;
     if (on_ubuntu) {
-        pkg_config_env_for_xcb = "PKG_CONFIG_PATH"; // not sure why this needs to be changed on Ubuntu
         cc_bins.append("as") catch unreachable;
+    }
+    const on_nixos = if (b.option(bool, "nixos", "configure for nixos")) |o| o else false;
+    if (on_nixos) {
+        pkg_config_path_env = "PKG_CONFIG_PATH_FOR_TARGET";
     }
 
     const env_path = b.pathFromRoot("env");
@@ -171,7 +174,7 @@ pub fn build(b: *Builder) void {
         make.step.dependOn(&xorg_macros_step.step);
         make.autogen_step.setEnvironmentVariable("ACLOCAL",
             b.fmt("aclocal -I {s}/share/aclocal", .{xorg_macros_step.install_dir}));
-        make.autogen_step.setEnvironmentVariable("PKG_CONFIG_PATH_FOR_TARGET",
+        make.autogen_step.setEnvironmentVariable(pkg_config_path_env,
             b.fmt("{s}/share/pkgconfig", .{xorg_macros_step.install_dir}));
 
         if (containerize) {
@@ -230,7 +233,7 @@ pub fn build(b: *Builder) void {
         make.step.dependOn(&xorgproto_step.step);
         make.autogen_step.setEnvironmentVariable("ACLOCAL",
             b.fmt("aclocal -I {s}/share/aclocal", .{xorg_macros_step.install_dir}));
-        make.autogen_step.setEnvironmentVariable("PKG_CONFIG_PATH_FOR_TARGET",
+        make.autogen_step.setEnvironmentVariable(pkg_config_path_env,
             b.fmt("{s}/share/pkgconfig", .{xorgproto_step.install_dir}));
 
         if (containerize) {
@@ -299,7 +302,7 @@ pub fn build(b: *Builder) void {
         make.autogen_step.setEnvironmentVariable("ACLOCAL",
             b.fmt("aclocal -I {s}/share/aclocal", .{xorg_macros_step.install_dir}));
         make.autogen_step.setEnvironmentVariable(
-            pkg_config_env_for_xcb,
+            pkg_config_path_env,
             b.fmt("{s}/lib/pkgconfig:{s}/share/pkgconfig:{s}/share/pkgconfig:{s}/lib/pkgconfig", .{
                 xcbproto_step.install_dir,
                 xorg_macros_step.install_dir,
@@ -432,7 +435,7 @@ pub fn build(b: *Builder) void {
             }),
         );
         make.autogen_step.setEnvironmentVariable(
-            "PKG_CONFIG_PATH_FOR_TARGET",
+            pkg_config_path_env,
             b.fmt("{s}/share/pkgconfig:{s}/share/pkgconfig:{s}/lib/pkgconfig:{s}/share/pkgconfig", .{
                 xorg_macros_step.install_dir,
                 xorgproto_step.install_dir,
@@ -519,7 +522,7 @@ pub fn build(b: *Builder) void {
             }),
         );
         make.autogen_step.setEnvironmentVariable(
-            "PKG_CONFIG_PATH_FOR_TARGET",
+            pkg_config_path_env,
             b.fmt("{s}/share/pkgconfig:{s}/lib/pkgconfig", .{
                 xorgproto_step.install_dir,
                 x11_step.install_dir,
