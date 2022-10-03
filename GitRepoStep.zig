@@ -1,4 +1,4 @@
-//! Publish Date: 2021_10_17
+//! Publish Date: 2022_09_09
 //! This file is hosted at github.com/marler8997/zig-build-repos and is meant to be copied
 //! to projects that use it.
 const std = @import("std");
@@ -27,7 +27,7 @@ url: []const u8,
 name: []const u8,
 branch: ?[]const u8 = null,
 sha: []const u8,
-path: []const u8 = null,
+path: []const u8,
 sha_check: ShaCheck = .warn,
 fetch_enabled: bool,
 
@@ -179,9 +179,7 @@ fn run(builder: *std.build.Builder, argv: []const []const u8) !void {
         std.log.info("[RUN] {s}", .{msg.items});
     }
 
-    const child = try std.ChildProcess.init(argv, builder.allocator);
-    defer child.deinit();
-
+    var child = std.ChildProcess.init(argv, builder.allocator);
     child.stdin_behavior = .Ignore;
     child.stdout_behavior = .Inherit;
     child.stderr_behavior = .Inherit;
