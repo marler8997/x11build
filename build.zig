@@ -28,7 +28,16 @@ pub fn build(b: *Builder) void {
     var tools = findTools(b, target);
 
     // Add args to compiler here
-    //tools.cc.args = b.fmt("{s} <PUT_ARGS_HERE>", .{tools.cc.args});
+    tools.cc.args = b.fmt("{s}"
+        ++ " -nostdlib"
+        ++ " -I/home/marler8997/git/ziglibc/inc/libc"
+        ++ " -I/home/marler8997/git/ziglibc/inc/posix"
+        ++ " -I/home/marler8997/git/ziglibc/inc/linux"
+        ++ " -L/home/marler8997/git/ziglibc/zig-out/lib"
+        ++ " -lstart"
+        ++ " -lcguana",
+        .{tools.cc.args},
+    );
     std.log.info("CC=\"{s}\"", .{tools.cc.args});
     cc_bins.append(tools.cc.file) catch unreachable;
     var pkg_config_path_env: []const u8 = "PKG_CONFIG_PATH";
@@ -743,6 +752,17 @@ const ExplicitEnvStep = struct {
             //std.log.info("symlink '{s}' -> '{s}'", .{bin, file});
             try bin_dir.symLink(file, bin, .{});
         }
+        // add python3 for zignolibc
+        bin_dir.access("python3", .{}) catch |err| switch (err) {
+            error.FileNotFound => {
+                const file = (try which.whichPathEnv(arena.allocator(), "python3", path, pathext)) orelse {
+                    std.log.err("program '{s}' is not in PATH '{s}'", .{"python3", path});
+                    return error.MissingProgram;
+                };
+                try bin_dir.symLink(file, "python3", .{});
+            },
+            else => |e| return e,
+        };
     }
 };
 
@@ -780,10 +800,11 @@ fn findTools(b: *std.build.Builder, target: std.zig.CrossTarget) Tools {
         std.log.err("specify a cross target with -Dtarget=..., otherwise, zig tries to find the system libc headers/libs and can fail", .{});
         std.os.exit(0xff);
     }
+    const zig_no_libc = "/home/marler8997/git/x11build/zignolibc";
     return .{
         .cc = .{
-            .file = b.zig_exe,
-            .args = b.fmt("{s} cc -target {s}", .{b.zig_exe, target.zigTriple(b.allocator) catch unreachable}),
+            .file = zig_no_libc,
+            .args = b.fmt("{s} cc -target {s}", .{zig_no_libc, target.zigTriple(b.allocator) catch unreachable}),
         },
         .ar = .{
             .file = b.zig_exe,

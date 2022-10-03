@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+import sys
+import os
+def main():
+    #zig = "/home/marler8997/zig/0.10.0-dev.1335+c64279b15/files/zig"
+    zig = "/home/marler8997/bin/zig"
+    new_args = [zig]
+    have_cguana = False
+    compile_only_flag = False
+    for arg in sys.argv[1:]:
+        if arg == "-lc":
+            print("ZIGCC: WARNING: -lc was passed to us")
+        elif arg == "-lcguana":
+            have_cguana = True
+        elif arg == "-c":
+            compile_only_flag = True
+            new_args.append(arg)
+        else:
+            new_args.append(arg)
+    if not compile_only_flag and have_cguana:
+        new_args.append("-lcguana")
+    print("ZIGCC: " + ' '.join(new_args))
+    os.execvp(zig, new_args)
+main()

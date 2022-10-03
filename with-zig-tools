@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+dir=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
+mkdir -p $dir/zig-tools
+
+echo "#!/usr/bin/env sh" > $dir/zig-tools/ar
+echo "exec zig ar \"\$@\"" >> $dir/zig-tools/ar
+chmod +x $dir/zig-tools/ar
+
+echo "#!/usr/bin/env sh" > $dir/zig-tools/ranlib
+echo "exec zig ranlib \"\$@\"" >> $dir/zig-tools/ranlib
+chmod +x $dir/zig-tools/ranlib
+
+echo "#!/usr/bin/env sh" > $dir/zig-tools/ld
+echo "exec zig ld \"\$@\"" >> $dir/zig-tools/ld
+chmod +x $dir/zig-tools/ld
+
+export PATH="$dir/zig-tools:$PATH"
+exec "$@"
